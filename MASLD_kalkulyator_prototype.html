@@ -1,0 +1,991 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>МАСХП — покроковий розрахунок для сімейного лікаря</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:ital,wght@0,500;0,600;1,700;1,800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --amber:#E9A227; --amber-dp:#C9880F; --brown:#6B2E1E; --cream:#FCF7EE;
+  --surface:#fff; --ink:#2A2320; --soft:#7A6C63; --line:#EDE3D5; --ok:#4E7C43;
+  --sh:0 6px 22px rgba(107,46,30,.09);
+  --fd:"Archivo",system-ui,sans-serif; --fb:"Inter",system-ui,-apple-system,sans-serif;
+  /* стани: бурштин зайнятий брендом, тому застереження глибше, а термінове — інверсією */
+  --warn:#A2551A; --warn-bg:#FBEBD6;
+  --urgent:#8E2419; --urgent-ink:#FFF3EE;
+  --band-lo:#DCE7D6; --band-mid:#FBE3B8; --band-hi:#F1CBC3;
+}
+*{box-sizing:border-box} html,body{margin:0}
+body{background:var(--cream);color:var(--ink);font-family:var(--fb);font-size:16.5px;line-height:1.5;-webkit-font-smoothing:antialiased;padding-bottom:92px}
+.wrap{max-width:900px;margin:0 auto;padding:0 16px 44px}
+
+/* ---------- шапка ---------- */
+.hero{position:relative;margin:0 -16px 16px;padding:26px 16px 22px;background:var(--surface);overflow:hidden}
+.hero::after{content:"";position:absolute;right:-46px;top:-76px;width:240px;height:240px;background:var(--amber);transform:rotate(45deg)}
+.hero-in{position:relative;z-index:2;max-width:74%}
+.eyebrow{font-size:12px;letter-spacing:.09em;text-transform:uppercase;color:var(--amber-dp);font-weight:700;margin-bottom:6px}
+h1{font-family:var(--fd);font-style:italic;font-weight:800;font-size:clamp(24px,5.4vw,32px);line-height:1.06;color:var(--brown);margin:0 0 8px;text-transform:uppercase}
+.hero p{margin:0 0 12px;color:var(--soft);font-size:15px}
+.privacy{display:inline-flex;align-items:center;background:#EDF3EA;color:#3D6636;border-radius:999px;padding:6px 13px;font-size:12.5px;font-weight:600}
+.demo{display:inline-flex;align-items:center;background:#FFF4DE;color:#8A5A10;border-radius:999px;padding:6px 12px;font-size:12.5px;font-weight:600;margin:8px 0 0}
+@media(max-width:640px){.hero-in{max-width:100%}.hero::after{opacity:.5}}
+
+/* ---------- вкладки ---------- */
+.tabs{position:sticky;top:0;z-index:15;background:var(--cream);padding:8px 0 4px;margin:0 0 12px}
+.tabrow{display:flex;background:var(--surface);border-radius:999px;padding:5px;box-shadow:var(--sh)}
+.tabrow button{
+  flex:1;border:none;cursor:pointer;font-family:inherit;font-weight:700;font-size:14.5px;
+  padding:11px 8px;border-radius:999px;background:none;color:var(--soft);transition:background .15s,color .15s;
+}
+.tabrow button[aria-selected="true"]{background:var(--amber);color:#3E2408}
+.tabrow .cnt{font-weight:500;opacity:.75;font-size:12.5px}
+.chips{display:flex;flex-wrap:wrap;padding:10px 2px 0}
+.chips button{
+  font-family:inherit;font-size:12.5px;font-weight:600;color:var(--soft);
+  background:var(--surface);border:1.5px solid var(--line);border-radius:999px;
+  padding:5px 12px 5px 9px;margin:0 7px 7px 0;cursor:pointer;
+  display:inline-flex;align-items:center;transition:border-color .15s,color .15s;
+}
+.chips .dot{width:7px;height:7px;border-radius:50%;background:var(--line);flex:none;margin-right:6px}
+.chips button.done{color:var(--ink);border-color:var(--amber)}
+.chips button.done .dot{background:var(--amber)}
+.chips button.na{opacity:.45}
+.panel[hidden]{display:none}
+.panel{animation:fade .18s ease}
+@keyframes fade{from{opacity:.4}to{opacity:1}}
+
+/* ---------- картка кроку ---------- */
+.card{background:var(--surface);border-radius:22px;box-shadow:var(--sh);padding:20px 18px 18px;margin:0 0 16px}
+.card.folded{padding:16px 18px}
+.shead{display:flex;align-items:center;margin-bottom:2px}
+.snum{
+  flex:none;width:34px;height:34px;border-radius:50%;border:1.5px solid var(--line);
+  background:var(--cream);display:flex;align-items:center;justify-content:center;
+  font-family:var(--fd);font-weight:600;font-size:17px;color:var(--brown);
+  font-variant-numeric:tabular-nums;margin-right:11px;
+}
+h2{font-family:var(--fd);font-weight:600;font-size:19px;margin:0;color:var(--ink)}
+.sub{color:var(--soft);font-size:14px;margin:4px 0 0 45px}
+.sbody{margin-top:14px}
+@media(max-width:600px){.sub{margin-left:0}}
+.zone{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--amber-dp);font-weight:700;margin:18px 0 8px}
+.zone:first-child{margin-top:0}
+
+/* ---------- вибір ознак ---------- */
+label.item{
+  display:flex;align-items:flex-start;padding:10px 11px;border-radius:16px;
+  cursor:pointer;transition:background .15s;font-size:15px;line-height:1.45;
+}
+label.item:hover{background:var(--cream)}
+label.item.on,label.item:has(input:checked){background:#FFF6E4}
+label.item input{margin:3px 11px 0 0;flex:none;width:17px;height:17px;accent-color:var(--amber-dp)}
+label.item b{font-weight:600}
+
+/* ---------- поля ---------- */
+.row{display:flex;flex-wrap:wrap;margin:10px -12px 0 0}
+.row>.f{margin:0 12px 12px 0}
+.f{display:flex;flex-direction:column}
+.f label{font-size:12px;color:var(--soft);font-weight:600;margin-bottom:4px}
+.f input,.f select{
+  font-family:inherit;font-size:16px;color:var(--ink);background:var(--cream);
+  border:1.5px solid var(--line);border-radius:13px;padding:10px 12px;width:118px;
+}
+.f.wide input,.f.wide select{width:196px}
+.f .unit{font-size:11.5px;color:var(--soft);margin-top:4px}
+.presets{display:flex;flex-wrap:wrap;margin:0 0 6px}
+.presets button{
+  font-family:inherit;font-size:13px;font-weight:600;color:var(--brown);
+  background:var(--cream);border:none;border-radius:999px;padding:7px 13px;
+  margin:0 7px 7px 0;cursor:pointer;transition:transform .12s,background .15s;
+}
+.presets button:hover{background:#FFF0D6}
+.presets button:active{transform:scale(.96)}
+
+/* ---------- результат ---------- */
+.result{background:var(--cream);border-radius:16px;padding:14px 15px;margin:14px 0 0}
+.rval{display:flex;align-items:baseline;flex-wrap:wrap;margin-right:-10px}
+.rval>*{margin-right:10px}
+.num{font-family:var(--fd);font-weight:600;font-size:34px;line-height:1;color:var(--brown);font-variant-numeric:tabular-nums}
+.num.muted{color:#D8CCBC}
+.runit{font-size:13.5px;color:var(--soft)}
+.verdict{font-size:13px;font-weight:700;padding:4px 12px;border-radius:999px;background:var(--ok);color:#fff}
+.verdict.mid{background:var(--warn)}
+.verdict.hi{background:var(--urgent)}
+.verdict.off{background:var(--line);color:var(--soft)}
+.rlegend{font-size:13px;color:var(--soft);margin:10px 0 0;line-height:1.5}
+
+/* шкала порогів */
+.ribbon{margin:14px 0 0;position:relative}
+.bands{display:flex;height:11px;border-radius:999px;overflow:hidden}
+.bands i{display:block;height:100%}
+.b1{background:var(--band-lo)}.b2{background:var(--band-mid)}.b3{background:var(--band-hi)}
+.marker{position:absolute;top:-4px;width:3px;height:19px;border-radius:2px;background:var(--brown);transition:left .35s cubic-bezier(.4,0,.2,1)}
+.marker::after{content:"";position:absolute;top:-5px;left:-3px;border:4.5px solid transparent;border-top-color:var(--brown)}
+.marker.ghost{background:#CDBCAC;height:15px;top:-2px}
+.marker.ghost::after{border-top-color:#CDBCAC;border-width:3.5px;left:-2px;top:-3px}
+.delta{position:absolute;top:4px;height:3px;border-radius:2px;background:var(--brown);opacity:.25;transition:left .35s cubic-bezier(.4,0,.2,1),width .35s cubic-bezier(.4,0,.2,1)}
+.ticks{position:relative;height:17px;margin-top:6px;font-size:11.5px;color:var(--soft);font-weight:600;font-variant-numeric:tabular-nums}
+
+/* ---------- коментарі ---------- */
+details.why{margin:10px 0 0;font-size:14px}
+details.why summary{
+  cursor:pointer;color:var(--amber-dp);font-weight:600;list-style:none;
+  display:inline-flex;align-items:center;padding:3px 0;
+}
+details.why summary::-webkit-details-marker{display:none}
+details.why summary::before{
+  content:"+";font-family:var(--fd);font-weight:600;width:21px;height:21px;flex:none;
+  border-radius:50%;background:var(--cream);display:inline-flex;align-items:center;justify-content:center;font-size:15px;
+  margin-right:8px;
+}
+details.why[open] summary::before{content:"–"}
+details.why .inner{
+  margin:8px 0 0;padding:13px 15px;background:var(--cream);border-radius:16px;
+  color:var(--soft);line-height:1.6;font-size:14px;animation:slide .16s ease;
+}
+details.why .src{display:block;margin-top:8px;font-size:12.5px;opacity:.85}
+@keyframes slide{from{opacity:0;transform:translateY(-3px)}to{opacity:1;transform:none}}
+
+/* застереження: ніколи не анімуються */
+.note{margin:12px 0 0;padding:13px 15px;border-radius:16px;font-size:14px;line-height:1.55;
+      background:var(--warn-bg);color:#733A0C;animation:none!important;transition:none!important}
+.note b{font-weight:700;color:var(--warn)}
+.note.info{background:var(--cream);color:var(--soft)}
+.note.info b{color:var(--brown)}
+.note.stop{background:var(--urgent);color:var(--urgent-ink)}
+.note.stop b{color:#fff}
+
+/* ---------- перелік, перенесення, запис ---------- */
+.listout{background:var(--cream);border-radius:16px;padding:14px 16px;font-size:14.5px;line-height:1.65}
+.listout b{font-weight:700;color:var(--brown)}
+.carry{background:var(--surface);border-radius:22px;box-shadow:var(--sh);padding:16px 18px;margin:0 0 14px}
+.carry h4{font-family:var(--fd);font-weight:600;font-size:15px;margin:0 0 10px}
+.carrygrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(128px,1fr));gap:8px}
+.carrygrid div{background:var(--cream);border-radius:12px;padding:9px 11px}
+.carrygrid b{display:block;font-size:11px;font-weight:600;color:var(--soft);margin-bottom:2px}
+.carrygrid span{font-weight:700;font-size:14px}
+.carrygrid span.none{font-weight:500;color:var(--soft)}
+textarea{
+  width:100%;min-height:200px;font-family:inherit;font-size:14px;line-height:1.6;color:var(--ink);
+  background:var(--cream);border:1.5px solid var(--line);border-radius:16px;padding:14px;resize:vertical;
+}
+.acts{display:flex;margin-top:12px;flex-wrap:wrap}
+.acts>.btn{margin:0 9px 8px 0}
+.btn{border:none;cursor:pointer;font-family:inherit;font-weight:700;font-size:14.5px;padding:12px 20px;border-radius:13px;transition:transform .12s}
+.btn:active{transform:scale(.97)}
+.btn-a{background:var(--amber);color:#3E2408}
+.btn-b{background:var(--cream);color:var(--soft)}
+
+/* ---------- підсумкова панель ---------- */
+.bar{position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--surface);box-shadow:0 -6px 22px rgba(107,46,30,.10)}
+.barin{max-width:900px;margin:0 auto;padding:10px 16px;display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.tot{background:var(--cream);border-radius:12px;padding:8px 6px;text-align:center;min-width:0}
+.tot b{display:block;font-family:var(--fd);font-weight:600;font-size:16px;font-variant-numeric:tabular-nums;
+       white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tot span{font-size:10.5px;color:var(--soft)}
+.tot.alert{background:#F7E0DC}.tot.alert b{color:var(--urgent)}
+.tot.warn{background:#FBEBD6}.tot.warn b{color:var(--warn)}
+
+footer{margin-top:20px;color:var(--soft);font-size:12px;line-height:1.55}
+footer strong{color:var(--ink)}
+:focus-visible{outline:3px solid var(--amber-dp);outline-offset:2px}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="hero">
+  <div class="hero-in">
+    <div class="eyebrow">Алгоритм для сімейного лікаря</div>
+    <h1>МАСХП: покроковий розрахунок</h1>
+    <p>Виявлення метаболічно-асоційованої стеатозної хвороби печінки та стратифікація ризику фіброзу. Розрахунок допоміжний, клінічне рішення лишається за лікарем.</p>
+    <span class="privacy">Усе рахується у вашому браузері. Дані нікуди не передаються і не зберігаються.</span>
+    <div><span class="demo">Прототип. Не для клінічного застосування до узгодження регуляторного статусу.</span></div>
+  </div>
+</div>
+
+<nav class="tabs">
+  <div class="tabrow" role="tablist">
+    <button role="tab" id="tab1" aria-selected="true" aria-controls="v1">Візит 1 <span class="cnt">кроки 1–2</span></button>
+    <button role="tab" id="tab2" aria-selected="false" aria-controls="v2">Візит 2 <span class="cnt">кроки 3–5</span></button>
+  </div>
+  <div class="chips" id="chips"></div>
+</nav>
+
+<div class="panel" id="v1" role="tabpanel" aria-labelledby="tab1">
+
+<section class="card" id="sec1">
+  <div class="shead"><div class="snum">1</div><h2>Кого перевіряти</h2></div>
+  <p class="sub">Позначте те, що є в цього пацієнта.</p>
+  <div class="sbody">
+    <div class="zone">Плановий пошук</div>
+    <label class="item"><input type="checkbox" data-g="s1" id="s1a"><span>Цукровий діабет 2 типу — будь&#8209;який</span></label>
+    <label class="item"><input type="checkbox" data-g="s1" id="s1b"><span>ІМТ ≥ 25 кг/м² або обвід талії ≥ 94 см (чол.) / ≥ 80 см (жін.) разом щонайменше з одним кардіометаболічним критерієм</span></label>
+    <label class="item"><input type="checkbox" data-g="s1" id="s1c"><span>Метаболічний синдром</span></label>
+    <div class="zone">Коли натрапили</div>
+    <label class="item"><input type="checkbox" data-g="s1" id="s1d"><span>Стеатоз на УЗД («жировий гепатоз», підвищена ехогенність)</span></label>
+    <label class="item"><input type="checkbox" data-g="s1" id="s1e"><span>Стійке підвищення АЛТ або АСТ без пояснення</span></label>
+    <label class="item"><input type="checkbox" data-g="s1" id="s1f"><span>Тромбоцити &lt; 150 × 10⁹/л без гематологічної причини</span></label>
+    <label class="item"><input type="checkbox" data-g="s1" id="s1g"><span>Дисліпідемія, що потребує лікування, або артеріальна гіпертензія з абдомінальним ожирінням</span></label>
+    <label class="item"><input type="checkbox" data-g="s1" id="s1h"><span>Родич першого ступеня з цирозом внаслідок МАСХП</span></label>
+    <div id="s1out"></div>
+  </div>
+</section>
+
+<section class="card" id="sec2">
+  <div class="shead"><div class="snum">2</div><h2>Візит 1 — зібрати</h2></div>
+  <p class="sub">Розпитування й огляд дають класифікацію за алкоголем уже сьогодні, без жодного аналізу.</p>
+  <div class="sbody">
+    <div class="row">
+      <div class="f wide"><label for="sex">Стать пацієнта</label>
+        <select id="sex"><option value="">не вказано</option><option value="f">жінка</option><option value="m">чоловік</option></select>
+        <span class="unit">потрібна для порогів алкоголю, ЛПВЩ і AUDIT-C</span></div>
+    </div>
+
+    <div class="zone">Алкоголь — кількісно</div>
+    <p class="rlegend" style="margin-top:0">Що п’єте найчастіше? Домашнє вино й самогон — міцність питати окремо. Уточніть посуд: «чарка» буває 30 і 100 мл.</p>
+    <div class="presets" id="presets"></div>
+    <div class="row">
+      <div class="f"><label for="vol">Об’єм за раз</label><input id="vol" type="number" min="0" step="10" placeholder="500"><span class="unit">мл</span></div>
+      <div class="f"><label for="abv">Міцність</label><input id="abv" type="number" min="0" max="96" step="0.5" placeholder="5"><span class="unit">% об.</span></div>
+      <div class="f"><label for="days">Днів на тиждень</label><input id="days" type="number" min="0" max="7" step="1" placeholder="3"><span class="unit">0–7</span></div>
+    </div>
+
+    <div class="result">
+      <div class="rval">
+        <span class="num muted" id="gNum">—</span>
+        <span class="runit">г етанолу на добу в середньому</span>
+        <span class="verdict off" id="gVerd">введіть дані</span>
+      </div>
+      <div class="ribbon" id="gRibbon" hidden>
+        <div class="bands"><i class="b1"></i><i class="b2"></i><i class="b3"></i></div>
+        <div class="marker" id="gMark" style="left:0"></div>
+        <div class="ticks" id="gTicks"></div>
+      </div>
+      <p class="rlegend" id="gLegend"></p>
+    </div>
+
+    <details class="why"><summary>Чому саме грами, а не «келих»</summary>
+      <div class="inner">Пороги нозологій задані в грамах етанолу на добу, а побутові міри не переводяться в них однозначно: «чарка» буває 30 і 100 мл, домашнє вино — від 12 до 14%, самогон — від 45 до 55%. Розрахунок: об’єм × міцність ÷ 100 × 0,79 (густина етанолу), помножено на дні вживання й поділено на 7.
+      <span class="src">Rinella ME et al. J Hepatol 2023. EASL–EASD–EASO CPG on MASLD, J Hepatol 2024;81:492–542.</span></div>
+    </details>
+    <div id="alcNote"></div>
+
+    <details class="why"><summary>AUDIT-C — коли потрібен стандартизований результат</summary>
+      <div class="inner">
+        Запис у карту, направлення до нарколога, підозра на заниження або на розлад вживання. Порція = 10 г етанолу: вино 150 мл, пиво 0,33 л (5%), міцний напій 30 мл.
+        <div class="row" style="margin-top:10px">
+          <div class="f wide"><label for="a1">Як часто вживали алкоголь?</label>
+            <select id="a1" data-a><option value="">—</option><option value="0">ніколи</option><option value="1">≤ 1 раз на місяць</option><option value="2">2–4 рази на місяць</option><option value="3">2–3 рази на тиждень</option><option value="4">≥ 4 рази на тиждень</option></select></div>
+          <div class="f wide"><label for="a2">Скільки порцій у типовий день?</label>
+            <select id="a2" data-a><option value="">—</option><option value="0">1–2</option><option value="1">3–4</option><option value="2">5–6</option><option value="3">7–9</option><option value="4">≥ 10</option></select></div>
+          <div class="f wide"><label for="a3">Як часто ≥ 6 порцій за раз?</label>
+            <select id="a3" data-a><option value="">—</option><option value="0">ніколи</option><option value="1">&lt; 1 раз на місяць</option><option value="2">щомісяця</option><option value="3">щотижня</option><option value="4">щодня</option></select></div>
+        </div>
+        <div id="auditOut"></div>
+      </div>
+    </details>
+
+    <div class="zone">Огляд і розпитування</div>
+    <label class="item"><input type="checkbox" data-g="cir" id="cir"><span><b>Фізикальні ознаки цирозу</b> — гепатоспленомегалія, пальмарна еритема, судинні зірочки, гінекомастія, асцит, астериксис</span></label>
+    <label class="item"><input type="checkbox" id="drug"><span>Приймає потенційно гепатотоксичний препарат або БАД — аміодарон, метотрексат, тамоксифен, системні ГКС, естрогени, вальпроати, «трав’яні збори»</span></label>
+    <div id="visitNotes"></div>
+
+    <div class="zone">Одне електронне направлення</div>
+    <div class="listout">
+      <b>У кабінеті, без направлення:</b> загальний аналіз крові з тромбоцитами · швидкі тести на гепатити B і C · глюкоза · загальний холестерин · загальний аналіз сечі · зріст, вага, ІМТ, обвід талії, АТ<br><br>
+      <b>Направленням:</b> АЛТ · АСТ · ГГТ · лужна фосфатаза · білірубін загальний і прямий · глюкоза плазми натще · HbA1c · ліпідограма · феритин разом із насиченням трансферину · розрахункова ШКФ
+    </div>
+    <details class="why"><summary>Чому феритин лише разом із насиченням трансферину</summary>
+      <div class="inner">При МАСХП феритин підвищений у значної частки пацієнтів як реактант гострої фази, без перевантаження залізом. Ізольований феритин дає потік хибних тривог; інтерпретується лише в парі з насиченням трансферину.</div>
+    </details>
+    <details class="why"><summary>Чому глюкоза з кабінету не закриває критерій</summary>
+      <div class="inner">Пороги 5,6 і 7,0 ммоль/л визначені для плазми. Вимірювання в цільній крові дає значення приблизно на 10–15% нижчі, тож порівняння з плазмовим порогом систематично недовиявляє дисглікемію. Критерій закриває глюкоза плазми натще з направлення.</div>
+    </details>
+  </div>
+</section>
+
+</div><!-- /v1 -->
+
+<div class="panel" id="v2" role="tabpanel" aria-labelledby="tab2" hidden>
+
+<div class="carry" id="carry"></div>
+
+<details class="why" id="restoreWrap" style="margin:0 0 16px">
+  <summary>Відновити дані першого візиту із запису в карті</summary>
+  <div class="inner">
+    Скопіюйте запис попереднього візиту з медичної карти й вставте сюди. Форма підставить стать, дані про алкоголь, огляд і показники FIB&#8209;4 для оцінки динаміки.
+    <textarea id="restoreIn" style="min-height:96px;margin-top:10px;background:var(--surface)" placeholder="Вставте текст запису"></textarea>
+    <div class="acts"><button class="btn btn-a" id="restoreBtn">Відновити</button></div>
+    <div id="restoreOut"></div>
+  </div>
+</details>
+
+<section class="card" id="sec3">
+  <div class="shead"><div class="snum">3</div><h2>Візит 2 — інтерпретувати</h2></div>
+  <p class="sub">Кардіометаболічні критерії та FIB-4 за результатами аналізів.</p>
+  <div class="sbody">
+    <div class="zone">Кардіометаболічні критерії</div>
+    <label class="item"><input type="checkbox" data-g="cm" id="cm1"><span>ІМТ ≥ 25 кг/м² або обвід талії ≥ 94 см (чол.) / ≥ 80 см (жін.)</span></label>
+    <label class="item"><input type="checkbox" data-g="cm" id="cm2"><span>Глюкоза плазми натще ≥ 5,6 ммоль/л або HbA1c ≥ 5,7% або ЦД2 чи його лікування</span></label>
+    <label class="item"><input type="checkbox" data-g="cm" id="cm3"><span>АТ ≥ 130/85 мм рт. ст. або антигіпертензивна терапія</span></label>
+    <label class="item"><input type="checkbox" data-g="cm" id="cm4"><span>Тригліцериди ≥ 1,7 ммоль/л або гіполіпідемічна терапія</span></label>
+    <label class="item"><input type="checkbox" data-g="cm" id="cm5"><span>ХС ЛПВЩ ≤ 1,0 ммоль/л (чол.) / ≤ 1,3 ммоль/л (жін.) або гіполіпідемічна терапія</span></label>
+
+    <div class="result">
+      <div class="rval">
+        <span class="num" id="cmNum">0</span><span class="runit">із п’яти критеріїв</span>
+        <span class="verdict off" id="cmVerd">потрібен щонайменше один</span>
+      </div>
+      <p class="rlegend" id="cmLegend"></p>
+    </div>
+    <details class="why"><summary>Чому одного критерію достатньо</summary>
+      <div class="inner">Метаболічний синдром потребує трьох критеріїв із п’яти. Для МАСХП достатньо одного. Застосування правила «3 з 5» до МАСХП є конкретною причиною недовиявлення: пацієнт зі стеатозом і самим лише підвищеним АТ уже відповідає визначенню.
+      <span class="src">Rinella ME et al. J Hepatol 2023.</span></div>
+    </details>
+    <div id="cmNote"></div>
+
+    <div class="zone">FIB-4</div>
+    <div class="row">
+      <div class="f"><label for="age">Вік</label><input id="age" type="number" min="1" max="110" step="1" placeholder="58"><span class="unit">років</span></div>
+      <div class="f"><label for="ast">АСТ</label><input id="ast" type="number" min="0" step="1" placeholder="42"><span class="unit">Од/л</span></div>
+      <div class="f"><label for="alt">АЛТ</label><input id="alt" type="number" min="0" step="1" placeholder="55"><span class="unit">Од/л</span></div>
+      <div class="f"><label for="plt">Тромбоцити</label><input id="plt" type="number" min="0" step="1" placeholder="180"><span class="unit">× 10⁹/л</span></div>
+      <div class="f"><label for="prev">Попередній FIB-4</label><input id="prev" type="number" min="0" step="0.01" placeholder="—"><span class="unit">якщо є</span></div>
+    </div>
+
+    <div class="result">
+      <div class="rval">
+        <span class="num muted" id="fNum">—</span>
+        <span class="runit" id="fUnit">введіть вік, АСТ, АЛТ і тромбоцити</span>
+        <span class="verdict off" id="fVerd">—</span>
+      </div>
+      <div class="ribbon" id="fRibbon" hidden>
+        <div class="bands"><i class="b1"></i><i class="b2"></i><i class="b3"></i></div>
+        <div class="delta" id="fDelta" hidden></div>
+        <div class="marker ghost" id="fGhost" hidden></div>
+        <div class="marker" id="fMark" style="left:0"></div>
+        <div class="ticks" id="fTicks"></div>
+      </div>
+      <p class="rlegend" id="fLegend"></p>
+    </div>
+
+    <details class="why"><summary>Формула й вікові пороги</summary>
+      <div class="inner">FIB-4 = (вік, років × АСТ, Од/л) ÷ (тромбоцити, ×10⁹/л × √АЛТ, Од/л). Одиниці обов’язкові: АЛТ і АСТ в Од/л, тромбоцити в ×10⁹/л.<br><br>
+      Для віку ≥ 65 років нижній поріг підвищено з 1,3 до 2,0, бо при звичайному порозі частка хибнопозитивних результатів у цій віковій групі надмірна. Верхній поріг 2,67 однаковий у всіх віках.
+      <span class="src">AGA Clinical Care Pathway 2026; EASL–EASD–EASO CPG 2024; AASLD 2023.</span></div>
+    </details>
+    <div id="fibNotes"></div>
+  </div>
+</section>
+
+<section class="card" id="s4">
+  <div class="shead"><div class="snum">4</div><h2>Проміжний FIB-4</h2></div>
+  <p class="sub" id="s4sub">Активується, коли FIB-4 потрапляє в проміжну зону.</p>
+  <div class="sbody" id="s4body">
+    <div class="row">
+      <div class="f wide"><label for="elast">Доступ до еластографії</label>
+        <select id="elast"><option value="">не вказано</option><option value="yes">є</option><option value="no">немає</option></select></div>
+    </div>
+    <div id="routeA" hidden>
+      <div class="row">
+        <div class="f wide"><label for="method">Методика</label>
+          <select id="method"><option value="vcte">VCTE (FibroScan)</option><option value="swe">2D-SWE на УЗ-апараті</option></select></div>
+        <div class="f"><label for="kpa">Жорсткість</label><input id="kpa" type="number" min="0" step="0.1" placeholder="9.4"><span class="unit">kPa</span></div>
+      </div>
+      <div class="result">
+        <div class="rval">
+          <span class="num muted" id="kNum">—</span><span class="runit">kPa</span>
+          <span class="verdict off" id="kVerd">введіть значення</span>
+        </div>
+        <div class="ribbon" id="kRibbon" hidden>
+          <div class="bands"><i class="b1"></i><i class="b2"></i><i class="b3"></i></div>
+          <div class="marker" id="kMark" style="left:0"></div>
+          <div class="ticks" id="kTicks"></div>
+        </div>
+        <p class="rlegend" id="kLegend"></p>
+      </div>
+      <details class="why"><summary>Чому kPa різних методик не взаємозамінні</summary>
+        <div class="inner">VCTE і 2D-SWE дають різні абсолютні значення на тому самому пацієнті, тому пороги не переносяться між ними. У висновку обов’язково зазначати метод і апарат. Для 2D-SWE узято «правило чотирьох» (5 / 9 / 13 / 17 kPa) із нижчою межею 7 kPa, бо при МАСХП пороги можуть бути нижчими й зона 7–9 kPa потребує повторного дослідження.
+        <span class="src">EASL–EASD–EASO CPG 2024; SRU consensus (Barr RG et al., Radiology 2020); Baveno VII.</span></div>
+      </details>
+      <div id="kNote"></div>
+    </div>
+    <div id="routeB" hidden>
+      <div class="note info">
+        <b>Маршрут Б — еластографії немає.</b> Інтенсифікувати ведення коморбідностей на 12 місяців, потім повторити АЛТ, АСТ і тромбоцити та перерахувати FIB-4.<br>
+        Менше 1,3 — рутинне спостереження. Стабільний 1,3–2,67 — продовжити ведення, ретест через 12 місяців. Зростання на ≥ 20% або вище 2,67 — показання до скерування, пріоритетно на еластографію.
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="card" id="sec5">
+  <div class="shead"><div class="snum">5</div><h2>Скерування</h2></div>
+  <p class="sub">Позначте наявні ознаки. Нижче зберуться показання, виявлені на всіх кроках.</p>
+  <div class="sbody">
+    <div class="zone">Ознаки, що потребують скерування протягом днів</div>
+    <label class="item"><input type="checkbox" data-g="urg" id="u1"><span>Ознаки декомпенсації — асцит, жовтяниця, енцефалопатія, кровотеча</span></label>
+    <label class="item"><input type="checkbox" data-g="urg" id="u2"><span>АЛТ або АСТ вище 5 верхніх меж норми</span></label>
+    <label class="item"><input type="checkbox" data-g="urg" id="u3"><span>Вогнищеве утворення печінки на УЗД</span></label>
+    <label class="item"><input type="checkbox" data-g="urg" id="u4"><span>Підвищений білірубін разом із подовженим МНВ</span></label>
+    <div class="zone">Планові ознаки</div>
+    <label class="item"><input type="checkbox" data-g="pl" id="p1"><span>Спленомегалія або нерівний контур печінки на УЗД</span></label>
+    <label class="item"><input type="checkbox" data-g="pl" id="p2"><span>Стійке підвищення АЛТ або АСТ ≥ 6 місяців попри модифікацію способу життя</span></label>
+    <label class="item"><input type="checkbox" data-g="pl" id="p3"><span>Підозра на іншу або супутню хворобу печінки</span></label>
+    <label class="item"><input type="checkbox" data-g="hbv" id="p4"><span>HBsAg позитивний або анти-HCV позитивні</span></label>
+    <label class="item"><input type="checkbox" data-g="endo" id="p5"><span>ЦД2 поза цільовим HbA1c або ожиріння з потребою фармакотерапії</span></label>
+    <div id="refOut"></div>
+    <details class="why"><summary>Чого на первинці виключити не можна</summary>
+      <div class="inner">Аутоімунний гепатит, хвороба Вільсона та дефіцит α1-антитрипсину: відповідних аналізів на рівні первинної допомоги немає. Це критерій скерування, а не прогалина обстеження.</div>
+    </details>
+  </div>
+</section>
+
+<section class="card" id="sec6">
+  <div class="shead"><div class="snum">6</div><h2>Запис для медичної карти</h2></div>
+  <p class="sub">Сформовано з введених даних. Перевірте й доповніть перед внесенням у МІС.</p>
+  <div class="sbody">
+    <textarea id="summary" spellcheck="false" aria-label="Запис для медичної карти"></textarea>
+    <div class="acts">
+      <button class="btn btn-a" id="copy">Копіювати запис</button>
+      <button class="btn btn-b" id="reset">Очистити все</button>
+    </div>
+  </div>
+</section>
+
+</div><!-- /v2 -->
+
+<footer>
+  <strong>Джерела порогів:</strong> EASL–EASD–EASO Clinical Practice Guidelines on MASLD, J Hepatol 2024;81:492–542 · AGA Clinical Care Pathway 2026 · AASLD 2023 · Rinella ME et al., J Hepatol 2023 · Baveno VII · SRU consensus, Radiology 2020.<br>
+  Інтервали спостереження при MetALD є практичною адаптацією: EASL зазначає, що рекомендації щодо МАСХП на MetALD не поширюються, а її природний перебіг ще належить описати.
+</footer>
+</div>
+
+<div class="bar">
+  <div class="barin">
+    <div class="tot"><b id="barCls">—</b><span>класифікація</span></div>
+    <div class="tot"><b id="barCm">0 з 5</b><span>критерії</span></div>
+    <div class="tot" id="barFWrap"><b id="barF">—</b><span>FIB-4</span></div>
+    <div class="tot" id="barRefWrap"><b id="barRef">—</b><span>скерування</span></div>
+  </div>
+</div>
+
+<script>
+"use strict";
+
+/* Єдине джерело порогів. Змінювати тільки тут. */
+const T = {
+  alcohol: { masld:{f:20,m:30}, metald:{f:50,m:60} },
+  fib4:    { low:1.3, lowOld:2.0, high:2.67, oldFrom:65, unreliableUnder:35, deltaPct:20 },
+  vcte:    { low:8, high:12, cacld:15, csph:25 },
+  swe:     { low:7, high:13 },
+  auditc:  { f:3, m:4 },
+  ethanolDensity: 0.79
+};
+
+const $ = id => document.getElementById(id);
+const on = (el, ev, fn) => el && el.addEventListener(ev, fn);
+const num = id => { const v = parseFloat($(id).value); return isFinite(v) ? v : null; };
+const fmt = (v, d=2) => v.toFixed(d).replace('.', ',');
+/* українська множина: 1 показання, 2–4 показання, 5+ показань */
+const plural = (n, one, few, many) => {
+  const a = Math.abs(n) % 100, b = a % 10;
+  if (a > 10 && a < 20) return many;
+  if (b > 1 && b < 5) return few;
+  if (b === 1) return one;
+  return many;
+};
+
+/* ---- пресети напоїв ---- */
+const DRINKS = [
+  ["Пиво 5%", 500, 5], ["Пиво міцне 8%", 500, 8],
+  ["Вино, келих", 150, 12], ["Вино, пляшка", 750, 12],
+  ["Горілка 100 мл", 100, 40], ["Самогон 100 мл", 100, 50]
+];
+DRINKS.forEach(([label, v, a]) => {
+  const b = document.createElement("button");
+  b.type = "button"; b.textContent = label;
+  b.onclick = () => { $("vol").value = v; $("abv").value = a; render(); };
+  $("presets").appendChild(b);
+});
+
+/* ---- шкала порогів ---- */
+function ribbon(prefix, value, cuts, max, ghost) {
+  const box = $(prefix + "Ribbon");
+  if (value == null) { box.hidden = true; return; }
+  box.hidden = false;
+  const lo = cuts[0], hi = cuts[1];
+  const top = Math.max(max, hi * 1.6, value * 1.1, ghost ? ghost * 1.1 : 0);
+  const bands = box.querySelectorAll(".bands i");
+  bands[0].style.flex = lo / top;
+  bands[1].style.flex = (hi - lo) / top;
+  bands[2].style.flex = (top - hi) / top;
+  const pct = v => Math.min(Math.max(v / top, 0), 1) * 100;
+  $(prefix + "Mark").style.left = "calc(" + pct(value) + "% - 1px)";
+
+  /* попереднє значення показуємо привидом і смугою зміни — рух тут несе інформацію */
+  const gm = $(prefix + "Ghost"), db = $(prefix + "Delta");
+  if (gm && db) {
+    if (ghost != null && ghost > 0) {
+      gm.hidden = false; db.hidden = false;
+      gm.style.left = "calc(" + pct(ghost) + "% - 1px)";
+      const a = Math.min(pct(ghost), pct(value)), b = Math.max(pct(ghost), pct(value));
+      db.style.left = a + "%"; db.style.width = (b - a) + "%";
+    } else { gm.hidden = true; db.hidden = true; }
+  }
+
+  const t = $(prefix + "Ticks");
+  t.innerHTML = ""; t.style.position = "relative"; t.style.height = "16px";
+  const mk = (txt, left) => {
+    const sp = document.createElement("span");
+    sp.textContent = txt;
+    sp.style.position = "absolute"; sp.style.left = left + "%";
+    sp.style.transform = "translateX(-50%)";
+    return sp;
+  };
+  t.appendChild(mk(fmt(lo, lo % 1 ? (lo < 10 ? 1 : 2) : 0), pct(lo)));
+  t.appendChild(mk(fmt(hi, hi % 1 ? 2 : 0), pct(hi)));
+}
+
+function setResult(prefix, value, verdict, cls, legend, digits) {
+  const n = $(prefix + "Num");
+  if (value == null) { n.textContent = "—"; n.classList.add("muted"); }
+  else { n.textContent = fmt(value, digits); n.classList.remove("muted"); }
+  const v = $(prefix + "Verd");
+  v.textContent = verdict; v.className = "verdict " + cls;
+  $(prefix + "Legend").textContent = legend || "";
+}
+
+function noteHTML(kind, html) {
+  return '<div class="note ' + kind + '">' + html + '</div>';
+}
+
+/* ---- обчислення ---- */
+function alcoholGrams() {
+  const v = num("vol"), a = num("abv"), d = num("days");
+  if (v == null || a == null || d == null || v <= 0 || a <= 0 || d <= 0) return null;
+  return (v * a / 100 * T.ethanolDensity) * d / 7;
+}
+
+function classifyAlcohol(g, sex) {
+  if (g == null || !sex) return null;
+  if (g <= T.alcohol.masld[sex]) return "MASLD";
+  if (g <= T.alcohol.metald[sex]) return "MetALD";
+  return "ALD";
+}
+
+function fib4() {
+  const age = num("age"), ast = num("ast"), alt = num("alt"), plt = num("plt");
+  if (age == null || ast == null || alt == null || plt == null) return null;
+  if (age <= 0 || alt <= 0 || plt <= 0 || ast < 0) return null;
+  return (age * ast) / (plt * Math.sqrt(alt));
+}
+
+function fibLowCut(age) {
+  return (age != null && age >= T.fib4.oldFrom) ? T.fib4.lowOld : T.fib4.low;
+}
+
+function fibBand(v, age) {
+  if (v == null) return null;
+  const lo = fibLowCut(age);
+  if (v < lo) return "low";
+  if (v <= T.fib4.high) return "mid";
+  return "high";
+}
+
+function kpaBand(v, method) {
+  if (v == null) return null;
+  const c = method === "swe" ? T.swe : T.vcte;
+  if (v < c.low) return "low";
+  if (v <= c.high) return "mid";
+  return "high";
+}
+
+const checked = g => [...document.querySelectorAll('[data-g="' + g + '"]')].filter(i => i.checked);
+
+/* ---- головний рендер ---- */
+function render() {
+  const sex = $("sex").value;
+
+  /* --- крок 1 --- */
+  const s1 = checked("s1").length;
+  $("s1out").innerHTML = s1
+    ? noteHTML("info", "<b>Показане обстеження на МАСХП.</b> Позначено ознак: " + s1 + ". Переходьте до кроку 2.")
+    : "";
+
+  /* --- алкоголь --- */
+  const g = alcoholGrams();
+  const cls = classifyAlcohol(g, sex);
+  let alcNote = "";
+  if (g == null) {
+    setResult("g", null, "введіть дані", "off", "");
+    ribbon("g", null);
+  } else if (!sex) {
+    setResult("g", g, "вкажіть стать", "off", "Пороги різні для жінок і чоловіків.", 1);
+    ribbon("g", null);
+  } else {
+    const c1 = T.alcohol.masld[sex], c2 = T.alcohol.metald[sex];
+    const label = { MASLD: "МАСХП", MetALD: "MetALD", ALD: "АХП" }[cls];
+    const cssv = cls === "MASLD" ? "" : (cls === "MetALD" ? "mid" : "hi");
+    setResult("g", g, label, cssv,
+      "Пороги для цієї статі: до " + c1 + " г/добу — МАСХП, " + c1 + "–" + c2 + " — MetALD, понад " + c2 + " — АХП. "
+      + "Це " + Math.round(g * 7) + " г на тиждень.", 1);
+    ribbon("g", g, [c1, c2], c2 * 1.6);
+    if (cls === "MetALD") {
+      alcNote = noteHTML("", "<b>Критерії MetALD виконані.</b> У документації має стояти MetALD, а не МАСХП: формулювання «МАСХП» приховує другий чинник ураження. Маршрут FIB-4 той самий, головна мішень — скорочення алкоголю, ретест через 12 місяців.<br><br>Наведений інтервал є практичною адаптацією. EASL прямо зазначає, що рекомендації щодо МАСХП на MetALD не поширюються.");
+    } else if (cls === "ALD") {
+      alcNote = noteHTML("stop", "<b>Критерії алкогольної хвороби печінки виконані.</b> Це не МАСХП. Утримання від алкоголю є основним лікуванням; показана консультація нарколога. При триваючому вживанні показання до скерування наявні незалежно від FIB-4.<br><br>Відмова після тривалого важкого вживання потребує медичного супроводу через ризик синдрому відміни.");
+    }
+  }
+  $("alcNote").innerHTML = alcNote;
+
+  /* --- AUDIT-C --- */
+  const aVals = ["a1", "a2", "a3"].map(id => $(id).value);
+  if (aVals.every(v => v !== "")) {
+    const sum = aVals.reduce((a, b) => a + (+b), 0);
+    const cut = sex ? T.auditc[sex] : null;
+    const pos = cut != null && sum >= cut;
+    $("auditOut").innerHTML = noteHTML(pos ? "" : "info",
+      "<b>AUDIT-C: " + sum + " балів.</b> " + (cut == null
+        ? "Вкажіть стать, щоб застосувати поріг."
+        : (pos
+            ? "Поріг для цієї статі — " + cut + ". Результат позитивний: показана консультація нарколога."
+            : "Поріг для цієї статі — " + cut + ". Результат нижчий за поріг.")));
+  } else {
+    $("auditOut").innerHTML = "";
+  }
+
+  /* --- огляд --- */
+  const cirrhosis = $("cir").checked;
+  let vn = "";
+  if (cirrhosis) vn += noteHTML("stop", "<b>Показання до скерування наявні вже сьогодні.</b> Фізикальні ознаки цирозу — підстава скерувати, не чекаючи результатів аналізів. МНВ і альбумін призначаються паралельно, а не замість скерування.");
+  if ($("drug").checked) vn += noteHTML("", "<b>Переглянути препарат.</b> Обговорити заміну з лікарем, який призначив, і переоцінити АЛТ та АСТ через 3 місяці після відміни. Про БАДи питати окремо: пацієнти не вважають їх ліками.");
+  $("visitNotes").innerHTML = vn;
+
+  /* --- кардіометаболічні критерії --- */
+  const cm = checked("cm").length;
+  $("cmNum").textContent = cm;
+  const cmv = $("cmVerd");
+  if (cm === 0) { cmv.textContent = "потрібен щонайменше один"; cmv.className = "verdict off"; }
+  else { cmv.textContent = "критерії виконані"; cmv.className = "verdict"; }
+  $("cmLegend").textContent = cm >= 3
+    ? "Виконано також критерії метаболічного синдрому (3 з 5), але для МАСХП достатньо було одного."
+    : "";
+  $("cmNote").innerHTML = (cm === 0 && s1)
+    ? noteHTML("", "<b>Жодного кардіометаболічного критерію.</b> За наявності стеатозу це криптогенна стеатозна хвороба печінки, а не МАСХП. Перед таким висновком розгляньте ПГТТ: він виявляє порушену толерантність у частини пацієнтів, у яких і глюкоза натще, і HbA1c у нормі.")
+    : "";
+
+  /* --- FIB-4 --- */
+  const age = num("age");
+  const f = fib4();
+  const band = fibBand(f, age);
+  const lo = fibLowCut(age);
+  let fibNotes = "";
+
+  if (f == null) {
+    setResult("f", null, "—", "off", "");
+    ribbon("f", null);
+    $("fUnit").textContent = "введіть вік, АСТ, АЛТ і тромбоцити";
+  } else {
+    $("fUnit").textContent = "";
+    const label = { low: "низький ризик", mid: "проміжний ризик", high: "високий ризик" }[band];
+    const cssv = { low: "", mid: "mid", high: "hi" }[band];
+    setResult("f", f, label, cssv,
+      "Пороги для віку " + (age >= T.fib4.oldFrom ? "≥ 65 років" : String(age) + " років") +
+      ": нижче " + fmt(lo, 1) + " — низький, " + fmt(lo, 1) + "–" + fmt(T.fib4.high, 2) + " — проміжний, вище " + fmt(T.fib4.high, 2) + " — високий.", 2);
+    ribbon("f", f, [lo, T.fib4.high], T.fib4.high * 1.7, num("prev"));
+
+    if (age != null && age < T.fib4.unreliableUnder) {
+      fibNotes += noteHTML("", "<b>У цього пацієнта FIB-4 ненадійний.</b> До 35 років чутливість низька, і нормальний результат не виключає фіброзу. За клінічної підозри — одразу еластографія, не покладаючись на FIB-4. У цьому віці також вища ймовірність неметаболічної причини: розгляньте церулоплазмін та аутоантитіла на рівні скерування.");
+    }
+    if (age != null && age >= T.fib4.oldFrom) {
+      fibNotes += noteHTML("info", "<b>Застосовано віковий поріг 2,0.</b> Для віку від 65 років нижній поріг підвищено, щоб зменшити частку хибнопозитивних результатів.");
+    }
+    if (band === "low") {
+      fibNotes += noteHTML("info", "<b>Веде сімейний лікар.</b> Ретест через 1–2 роки за наявності ЦД2, предіабету або двох і більше метаболічних факторів, інакше через 2–3 роки. Чутливість FIB-4 при порозі 1,3 становить близько 71%: за явних червоних прапорців нормальний результат підозри не знімає.");
+    }
+    if (band === "high") {
+      fibNotes += noteHTML("stop", "<b>Показання до скерування до гастроентеролога наявні.</b> FIB-4 вище 2,67 у будь-якому віці.");
+    }
+
+    const prev = num("prev");
+    if (prev != null && prev > 0) {
+      const delta = (f - prev) / prev * 100;
+      if (delta >= T.fib4.deltaPct) {
+        fibNotes += noteHTML("stop", "<b>Зростання на " + fmt(delta, 0) + "%.</b> Приріст від 20% — підстава перевести пацієнта на щабель вище незалежно від абсолютного значення: інтенсифікувати ведення, скоротити інтервал, розглянути еластографію.");
+      } else if (delta <= -5) {
+        fibNotes += noteHTML("", "<b>Зниження на " + fmt(Math.abs(delta), 0) + "%.</b> Інтерпретуйте з обережністю: будь-яке втручання, що знижує АСТ, знижує й FIB-4 без обов’язкової зміни фіброзу. Якщо в цей період призначалася терапія з АСТ-знижувальним ефектом, зниження FIB-4 не є доказом регресу фіброзу.");
+      }
+    }
+  }
+
+  const plt = num("plt"), ast = num("ast"), alt = num("alt");
+  if (plt != null && plt > 0 && plt < 150) {
+    fibNotes += noteHTML("", "<b>Тромбоцити нижче 150 × 10⁹/л.</b> Це самостійне показання до скерування, незалежно від значення FIB-4.");
+  }
+  if (ast != null && alt != null && alt > 0 && ast / alt > 1) {
+    fibNotes += noteHTML("", "<b>Співвідношення АСТ/АЛТ вище 1</b> (" + fmt(ast / alt, 2) + "). Самостійне показання до скерування.");
+  }
+  $("fibNotes").innerHTML = fibNotes;
+
+  /* --- крок 4 --- */
+  const s4 = $("s4body"), isMid = band === "mid";
+  s4.hidden = !isMid;
+  $("s4").classList.toggle("folded", !isMid);
+  $("s4sub").textContent = isMid
+    ? "FIB-4 у проміжній зоні. Оберіть маршрут за доступністю еластографії."
+    : (f == null ? "Активується, коли FIB-4 потрапляє в проміжну зону."
+                 : "FIB-4 поза проміжною зоною — цей крок не застосовується.");
+  const elast = $("elast").value;
+  $("routeA").hidden = !(isMid && elast === "yes");
+  $("routeB").hidden = !(isMid && elast === "no");
+
+  const method = $("method").value, kpa = num("kpa");
+  const kband = kpaBand(kpa, method);
+  let kNote = "";
+  if (isMid && elast === "yes") {
+    const c = method === "swe" ? T.swe : T.vcte;
+    if (kpa == null) { setResult("k", null, "введіть значення", "off", ""); ribbon("k", null); }
+    else {
+      const label = { low: "низький ризик", mid: "сіра зона", high: "високий ризик" }[kband];
+      const cssv = { low: "", mid: "mid", high: "hi" }[kband];
+      setResult("k", kpa, label, cssv,
+        (method === "swe" ? "2D-SWE" : "VCTE") + ": нижче " + c.low + " kPa — низький, " + c.low + "–" + c.high + " — сіра зона, вище " + c.high + " — високий.", 1);
+      ribbon("k", kpa, [c.low, c.high], c.high * 1.8);
+      if (method === "swe" && kpa >= 7 && kpa < 9) {
+        kNote += noteHTML("", "<b>Зона 7–9 kPa при МАСХП.</b> Повторити дослідження або додати другий тест: у цій зоні результат не є визначальним.");
+      }
+      if (method === "vcte" && kpa >= T.vcte.csph) {
+        kNote += noteHTML("stop", "<b>Понад 25 kPa.</b> Клінічно значуща портальна гіпертензія за Baveno VII. Скерування, оцінка варикозу.");
+      } else if (method === "vcte" && kpa >= T.vcte.cacld) {
+        kNote += noteHTML("stop", "<b>Понад 15 kPa.</b> Підозра на компенсовану прогресуючу хронічну хворобу печінки. Показання до скерування наявні.");
+      } else if (kband === "high") {
+        kNote += noteHTML("stop", "<b>Показання до скерування наявні.</b> Жорсткість вище верхнього порога для цієї методики.");
+      } else if (kband === "low") {
+        kNote += noteHTML("info", "<b>Просунутий фіброз малоймовірний.</b> Пацієнт повертається до спостереження сімейного лікаря з інтервалом як при низькому ризику.");
+      }
+      kNote += noteHTML("info", "У висновку зазначте методику й апарат: значення kPa різних методик не взаємозамінні.");
+    }
+  }
+  $("kNote").innerHTML = kNote;
+
+  /* --- крок 5 --- */
+  const urgent = checked("urg").map(i => i.parentElement.textContent.trim());
+  if (cirrhosis) urgent.unshift("Фізикальні ознаки цирозу");
+
+  const planned = checked("pl").map(i => i.parentElement.textContent.trim());
+  if (band === "high") planned.unshift("FIB-4 вище 2,67");
+  if (plt != null && plt > 0 && plt < 150) planned.push("Тромбоцити нижче 150 × 10⁹/л");
+  if (ast != null && alt != null && alt > 0 && ast / alt > 1) planned.push("Співвідношення АСТ/АЛТ вище 1");
+  if (isMid && elast === "yes" && (kband === "high" || kband === "mid")) planned.push("Жорсткість печінки поза зоною низького ризику");
+  if (cls === "ALD") planned.push("Алкогольна хвороба печінки з триваючим вживанням");
+
+  const others = [];
+  if (checked("hbv").length) others.push("до інфекціоніста — вірусний гепатит за результатом тесту");
+  if (checked("endo").length) others.push("до ендокринолога — ЦД2 поза цільовим HbA1c або ожиріння з потребою фармакотерапії");
+  if (cls === "ALD" || (aVals.every(v => v !== "") && sex && aVals.reduce((a, b) => a + (+b), 0) >= T.auditc[sex])) {
+    others.push("до нарколога — за результатом оцінки вживання алкоголю");
+  }
+
+  let ref = "";
+  if (urgent.length) ref += noteHTML("stop", "<b>Показання до скерування протягом днів:</b><br>" + urgent.join("<br>"));
+  if (planned.length) ref += noteHTML("", "<b>Показання до планового скерування до гастроентеролога:</b><br>" + planned.join("<br>"));
+  if (others.length) ref += noteHTML("info", "<b>Профільні консультації:</b><br>" + others.join("<br>"));
+  if (!ref && f != null) ref = noteHTML("info", "Показань до скерування за введеними даними не виявлено. Веде сімейний лікар.");
+  $("refOut").innerHTML = ref;
+
+  /* --- підсумкова панель --- */
+  $("barCls").textContent = cls ? { MASLD: "МАСХП", MetALD: "MetALD", ALD: "АХП" }[cls] : "—";
+  $("barCm").textContent = cm + " з 5";
+  $("barF").textContent = f == null ? "—" : fmt(f, 2) + " · " + { low: "низький", mid: "проміжний", high: "високий" }[band];
+  $("barFWrap").className = "tot" + (band === "high" ? " alert" : band === "mid" ? " warn" : "");
+  const refCount = urgent.length + planned.length;
+  $("barRef").textContent = urgent.length ? "терміново"
+  : (refCount ? refCount + " " + plural(refCount, "показання", "показання", "показань") : "—");
+  $("barRefWrap").className = "tot" + (urgent.length ? " alert" : refCount ? " warn" : "");
+
+  /* --- запис --- */
+  const L = [];
+  L.push("ОЦІНКА СТЕАТОЗНОЇ ХВОРОБИ ПЕЧІНКИ");
+  L.push("");
+  if (s1) L.push("Підстава для обстеження: " + s1 + " " + plural(s1, "ознака", "ознаки", "ознак") + " з переліку груп ризику.");
+  if (g != null && sex) {
+    L.push("Алкоголь: " + fmt(g, 1) + " г етанолу на добу в середньому (" + Math.round(g * 7) + " г/тиждень). "
+      + "Класифікація за вживанням: " + { MASLD: "у межах порога МАСХП", MetALD: "MetALD", ALD: "алкогольна хвороба печінки" }[cls] + ".");
+  }
+  if (aVals.every(v => v !== "")) L.push("AUDIT-C: " + aVals.reduce((a, b) => a + (+b), 0) + " балів.");
+  L.push("Кардіометаболічні критерії: виконано " + cm + " з 5" + (cm >= 1 ? " (для МАСХП достатньо одного)" : "") + ".");
+  if (f != null) {
+    L.push("FIB-4 = " + fmt(f, 2) + " (вік " + age + ", АСТ " + ast + ", АЛТ " + alt + ", тромбоцити " + plt + "). "
+      + "Поріг для віку: " + fmt(lo, 1) + "/" + fmt(T.fib4.high, 2) + ". Рівень ризику: "
+      + { low: "низький", mid: "проміжний", high: "високий" }[band] + ".");
+    if (age != null && age < T.fib4.unreliableUnder) L.push("Примітка: у віці до 35 років FIB-4 ненадійний.");
+  }
+  if (isMid && elast === "yes" && kpa != null) {
+    L.push("Еластографія (" + (method === "swe" ? "2D-SWE" : "VCTE") + "): " + fmt(kpa, 1) + " kPa — "
+      + { low: "низький ризик", mid: "сіра зона", high: "високий ризик" }[kband] + ".");
+  }
+  if (isMid && elast === "no") L.push("Еластографія недоступна. План: інтенсифікація ведення коморбідностей, перерахунок FIB-4 через 12 місяців.");
+  if (cirrhosis) L.push("Фізикальні ознаки цирозу наявні.");
+  if ($("drug").checked) L.push("Приймає потенційно гепатотоксичний препарат або БАД — переглянуто.");
+  L.push("");
+  L.push("ПЛАН");
+  if (urgent.length) L.push("Показання до скерування протягом днів: " + urgent.join("; ") + ".");
+  if (planned.length) L.push("Показання до планового скерування до гастроентеролога: " + planned.join("; ") + ".");
+  if (others.length) L.push("Профільні консультації: " + others.join("; ") + ".");
+  if (!urgent.length && !planned.length && f != null) L.push("Показань до скерування не виявлено. Спостереження сімейного лікаря.");
+  L.push("Ведення на будь-якому рівні ризику: маса тіла −7–10%; середземноморський тип харчування; 150–200 хв/тиждень аеробного навантаження та 2 силові сесії; статин за показаннями (підвищена АЛТ не є протипоказанням); цільовий АТ нижче 130/80; вакцинація проти гепатитів А і В за відсутності імунітету.");
+  if (cls === "MetALD") L.push("Скорочення вживання алкоголю — основна мішень втручання. Повторна оцінка FIB-4 через 12 місяців.");
+  if (cls === "ALD") L.push("Утримання від алкоголю — основне лікування. Повторна оцінка FIB-4 через 12 місяців.");
+  L.push("");
+  L.push("Параметри розрахунку (для повторного відкриття): "
+    + "стать " + (sex === "f" ? "ж" : sex === "m" ? "ч" : "—")
+    + "; напій " + ($("vol").value || "—") + " мл " + ($("abv").value || "—") + "% " + ($("days").value || "—") + " дн/тиж"
+    + "; ознаки цирозу " + (cirrhosis ? "так" : "ні")
+    + "; гепатотоксичні " + ($("drug").checked ? "так" : "ні")
+    + (age != null ? "; вік " + age : "") + ".");
+
+  $("summary").value = L.join("\n");
+  renderChips();
+  renderCarry();
+}
+
+
+/* ================= вкладки, чипи кроків, перенесення ================= */
+const STEPS = [
+  { tab: 1, n: "1", label: "Кого перевіряти",  el: "sec1", filled: () => checked("s1").length > 0 },
+  { tab: 1, n: "2", label: "Візит 1",          el: "sec2", filled: () => !!$("sex").value || alcoholGrams() != null || $("cir").checked || $("drug").checked },
+  { tab: 2, n: "3", label: "Візит 2",          el: "sec3", filled: () => checked("cm").length > 0 || fib4() != null },
+  { tab: 2, n: "4", label: "Проміжний FIB-4",  el: "s4",   filled: () => !!$("elast").value, na: () => fibBand(fib4(), num("age")) !== "mid" },
+  { tab: 2, n: "5", label: "Скерування",       el: "sec5", filled: () => checked("urg").length + checked("pl").length + checked("hbv").length + checked("endo").length > 0 },
+  { tab: 2, n: "6", label: "Запис для карти",  el: "sec6", filled: () => false }
+];
+let activeTab = 1;
+
+function showTab(n) {
+  activeTab = n;
+  $("v1").hidden = n !== 1;
+  $("v2").hidden = n !== 2;
+  $("tab1").setAttribute("aria-selected", n === 1);
+  $("tab2").setAttribute("aria-selected", n === 2);
+  renderChips();
+  try { window.scrollTo({ top: 0, behavior: prefersStill() ? "auto" : "smooth" }); }
+  catch (e) { window.scrollTo(0, 0); }
+}
+const prefersStill = () => {
+  try { return window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches; }
+  catch (e) { return false; }
+};
+on($("tab1"), "click", () => showTab(1));
+on($("tab2"), "click", () => showTab(2));
+
+function renderChips() {
+  const box = $("chips");
+  box.innerHTML = "";
+  STEPS.filter(st => st.tab === activeTab).forEach(st => {
+    const b = document.createElement("button");
+    b.type = "button";
+    const na = st.na ? st.na() : false;
+    b.className = (st.filled() ? "done " : "") + (na ? "na" : "");
+    b.innerHTML = '<span class="dot"></span>' + st.n + ". " + st.label;
+    b.onclick = () => {
+      const t = $(st.el);
+      if (!t) return;
+      try { t.scrollIntoView({ behavior: prefersStill() ? "auto" : "smooth", block: "start" }); }
+      catch (e) { t.scrollIntoView(); }
+    };
+    box.appendChild(b);
+  });
+}
+
+function renderCarry() {
+  const sex = $("sex").value, g = alcoholGrams(), cls = classifyAlcohol(g, sex);
+  const any = sex || g != null || $("cir").checked || $("drug").checked;
+  if (!any) {
+    $("carry").innerHTML = '<h4>З першого візиту нічого не перенесено</h4>'
+      + '<p class="hint" style="margin:0">Заповніть вкладку «Візит 1» або відновіть дані із запису в карті нижче. '
+      + 'Переносяться чотири позиції: стать, класифікація за алкоголем, ознаки цирозу, гепатотоксичні препарати.</p>';
+    return;
+  }
+  const cell = (lab, val, empty) =>
+    '<div><b>' + lab + '</b>' + (val
+      ? '<span>' + val + '</span>'
+      : '<span class="none">' + empty + '</span>') + '</div>';
+  $("carry").innerHTML = '<h4>Перенесено з першого візиту</h4><div class="carrygrid">'
+    + cell("Стать", sex === "f" ? "жінка" : sex === "m" ? "чоловік" : "", "не вказано")
+    + cell("Алкоголь", cls ? ({ MASLD: "у межах МАСХП", MetALD: "MetALD", ALD: "АХП" }[cls]
+        + " · " + fmt(g, 1) + " г/добу") : "", "не оцінено")
+    + cell("Ознаки цирозу", $("cir").checked ? "наявні" : "", "відсутні")
+    + cell("Гепатотоксичні", $("drug").checked ? "приймає" : "", "немає")
+    + '</div>';
+}
+
+/* ================= відновлення з запису в карті ================= */
+function restoreFromText(txt) {
+  const t = txt.replace(/\u00a0/g, " ");
+  const grab = re => { const m = t.match(re); return m ? m[1].replace(",", ".") : null; };
+  const found = [];
+  const setIf = (id, v, label) => {
+    if (v == null) return;
+    $(id).value = v; found.push(label);
+  };
+  const sex = /стать\s+ч/i.test(t) ? "m" : (/стать\s+ж/i.test(t) ? "f" : null);
+  if (sex) { $("sex").value = sex; found.push("стать"); }
+  const d = t.match(/напій\s+([\d.,]+)\s*мл\s+([\d.,]+)\s*%\s+([\d.,]+)\s*дн/i);
+  if (d) {
+    $("vol").value = d[1].replace(",", ".");
+    $("abv").value = d[2].replace(",", ".");
+    $("days").value = d[3].replace(",", ".");
+    found.push("алкоголь");
+  }
+  if (/ознаки цирозу\s+так/i.test(t)) { $("cir").checked = true; found.push("ознаки цирозу"); }
+  if (/гепатотоксичні\s+так/i.test(t)) { $("drug").checked = true; found.push("препарати"); }
+  setIf("age", grab(/вік\s+(\d+)/i), "вік");
+  const prevFib = grab(/FIB-4\s*=\s*([\d.,]+)/i);
+  if (prevFib) { $("prev").value = prevFib; found.push("попередній FIB-4"); }
+  return found;
+}
+
+on($("restoreBtn"), "click", () => {
+  const found = restoreFromText($("restoreIn").value || "");
+  $("restoreOut").innerHTML = found.length
+    ? noteHTML("info", "<b>Відновлено:</b> " + found.join(", ") + ". Перевірте значення перед використанням.")
+    : noteHTML("", "<b>Не вдалося розпізнати запис.</b> Вставте текст, згенерований цим інструментом на попередньому візиті — саме рядок «Параметри розрахунку». Дані можна ввести вручну.");
+  render();
+});
+
+/* ---- події ---- */
+document.querySelectorAll("input, select").forEach(el => {
+  on(el, "input", render); on(el, "change", render);
+});
+on($("copy"), "click", async () => {
+  const btn = $("copy"), original = "Копіювати запис";
+  try {
+    await navigator.clipboard.writeText($("summary").value);
+    btn.textContent = "Скопійовано";
+  } catch (e) {
+    $("summary").select(); document.execCommand("copy");
+    btn.textContent = "Скопійовано";
+  }
+  setTimeout(() => { btn.textContent = original; }, 1600);
+});
+on($("reset"), "click", () => {
+  document.querySelectorAll("input").forEach(i => {
+    if (i.type === "checkbox") i.checked = false; else i.value = "";
+  });
+  document.querySelectorAll("select").forEach(s => { s.selectedIndex = 0; });
+  $("restoreIn").value = ""; $("restoreOut").innerHTML = "";
+  render();
+  showTab(1);
+});
+
+render();
+
+</script>
+</body>
+</html>
